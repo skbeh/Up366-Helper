@@ -1,0 +1,16 @@
+{
+  "assets": [],
+  "build": {
+    "build_id": "590CB27A-14",
+    "build_number": 14,
+    "build_time": 1624184217886
+  },
+  "useFeatures": [],
+  "icon": "res/logo.png",
+  "main": "main.js",
+  "name": "天学网",
+  "packageName": "com.up366.answer",
+  "scripts": {},
+  "versionCode": 2,
+  "versionName": "0.0.2"
+}
