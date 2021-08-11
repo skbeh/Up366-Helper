@@ -1,20 +1,20 @@
 "use strict";
 
 runtime.loadDex("./lib.dex");
-//delete XML;
 importClass("org.anjson.anXML");
 importClass("org.jsoup.Jsoup");
 
 toast("请开启悬浮窗权限和无障碍服务，如已开启可无视");
 
 let i;
+let autoClick;
 i = confirm("是否自动做题？");
 if (i) {
-    var autoClick = true;
+    autoClick = true;
     auto.waitFor();
     auto.setMode("fast");
 } else {
-    var autoClick = false;
+    autoClick = false;
 }
 
 function bookDetect(dir) {
@@ -29,7 +29,7 @@ function bookDetect(dir) {
 i = dialogs.select("选择模式", "练习模式", "考试模式", "其他");
 let mode;
 if (i === -1) {
-    exit();
+    throw new Error("未选择模式！");
 } else if (i === 0) {
     mode = "exercise";
 } else if (i === 1) {
@@ -41,59 +41,57 @@ if (i === -1) {
 const path0 = files.getSdcardPath() + "/Up366Mobile/flipbook/flipbooks/";
 
 function selectDialog(i, text) {
-    if (i.length !== 1) {
-        return dialogs.select(text, i);
-    } else {
+    if (i.length === 1) {
         return 0;
+    } else if (i.length === 0) {
+        throw new Error("未找到作业！");
+    } else {
+        return dialogs.select(text, i);
     }
 }
 
 let modeDir;
 if (mode === "exercise") {
-    modeDir = path0 + "2821FE6574D4930635501353FDD4A060" + "/";
+    modeDir = path0 + "2821FE6574D4930635501353FDD4A060" + '/';
 } else if (mode === "exam") {
-    modeDir = path0 + "D89A19AC7F27403202BDFE55E29C61AB" + "/";
+    modeDir = path0 + "D89A19AC7F27403202BDFE55E29C61AB" + '/';
 } else if (mode === "other") {
     i = files.listDir(path0, bookDetect);
-    modeDir = path0 + i[selectDialog(i, "选择模式")] + "/";
+    modeDir = path0 + i[selectDialog(i, "选择模式")] + '/';
 }
 
 i = files.listDir(modeDir, bookDetect);
-const dirPath = modeDir + i[selectDialog(i, "选择作业")];
+const dirPath = modeDir + i[selectDialog(i, "选择作业")] + '/';
 
 function fileDetect(dirPath) {
+    if (!files.exists(dirPath)) {
+        throw new Error("文件夹不存在！");
+    }
     const types = ["page1.js", "correctAnswer.xml"];
-    let type;
-    let filePath;
-    for (type in types) {
-        filePath = dirPath + "/" + types[type];
-        //console.show();
+    for (let type of types) {
+        const filePath = dirPath + '/' + type;
         if (files.exists(filePath)) {
             return filePath;
         }
     }
     const dirs = [1, 2, 3];
-    let dir;
-    for (dir in dirs) {
-        if (files.exists(dirPath)) {
+    for (let dir of dirs) {
+        if (files.exists(dirPath + dir)) {
             dir = dialogs.select("子目录选择", dirs) + 1;
-            filePath = dirPath + "/" + dir + "/" + "page1.js";
+            filePath = dirPath + '/' + dir + '/' + "page1.js";
             return filePath;
         }
     }
     toast("未适配当前模式，开始模糊匹配！");
     const filesInDir = files.listDir(dirPath);
-    let answerFile;
-    for (answerFile in dirPath) {
+    for (let answerFile of filesInDir) {
         if (answerFile.endsWith(".js") || answerFile.endsWith(".xml")) {
-            return dirPath + "/" + answerFile;
+            return dirPath + '/' + answerFile;
         }
     }
 }
 
 function JSONParse(text) {
-    //const path = modeDir + i[selectDialog(i, "选择作业")] + "/page1.js";
-    //print(path);
     text = text.substring(15);
     return JSON.parse(text);
 }
@@ -107,7 +105,6 @@ if (files.getName(finalPath) === "page1.js") {
     obj = anXML.toJSONObject(text);
     obj = JSON.parse(obj.toString());
     obj = obj.elements;
-    //print(obj);
 }
 
 function answers(answer_text) {
@@ -179,7 +176,7 @@ function questionProcess(value) {
     } else if (value.answers) {
         if (Array.isArray(value.answers.answer)) {
             value.answers.answer.forEach(answerProcess);
-        } else if (Object.prototype.toString.call(value.answers.answer) === "[object Object]") {
+        } else if (value.answers.answer instanceof Object) {
             answerProcess(value.answers.answer);
         }
     } else if (value.analysis) {
@@ -204,8 +201,8 @@ function tagclean(i) {
     }
 }
 
-var options = [];
-var fills = [];
+let options = [];
+let fills = [];
 
 if (obj.slides) {
     obj.slides.forEach(slideProcess);
@@ -278,7 +275,5 @@ if (autoClick) {
     fills.forEach(fill);
 }
 
-print("finished");
-//nt("finished");
-//nished");
+print("\nfinished");
 //
