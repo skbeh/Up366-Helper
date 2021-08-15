@@ -6,15 +6,10 @@ importClass("org.jsoup.Jsoup");
 
 toast("请开启悬浮窗权限和无障碍服务，如已开启可无视");
 
-let i;
-let autoClick;
-i = confirm("是否自动做题？");
-if (i) {
-    autoClick = true;
+let autoClick = confirm("是否自动做题？");
+if (autoClick) {
     auto.waitFor();
     auto.setMode("fast");
-} else {
-    autoClick = false;
 }
 
 function bookDetect(dir) {
@@ -26,56 +21,56 @@ function bookDetect(dir) {
 }
 
 
-i = dialogs.select("选择模式", "练习模式", "考试模式", "其他");
+let modeInt = dialogs.select("选择模式", "练习模式", "考试模式", "其他");
 let mode;
-if (i === -1) {
+if (modeInt === -1) {
     throw new Error("未选择模式！");
-} else if (i === 0) {
+} else if (modeInt === 0) {
     mode = "exercise";
-} else if (i === 1) {
+} else if (modeInt === 1) {
     mode = "exam";
-} else if (i === 2) {
+} else if (modeInt === 2) {
     mode = "other";
 }
 
-const path0 = files.getSdcardPath() + "/Up366Mobile/flipbook/flipbooks/";
+const BASE_PATH = files.getSdcardPath() + "/Up366Mobile/flipbook/flipbooks/";
 
-function selectDialog(i, text) {
-    if (i.length === 1) {
+function selectDialog(x, text) {
+    if (x.length === 1) {
         return 0;
-    } else if (i.length === 0) {
-        throw new Error("未找到作业！");
+    } else if (x.length === 0) {
+        throw new Error("无可选择项！");
     } else {
-        return dialogs.select(text, i);
+        return dialogs.select(text, x);
     }
 }
 
 let modeDir;
 if (mode === "exercise") {
-    modeDir = path0 + "2821FE6574D4930635501353FDD4A060" + '/';
+    modeDir = BASE_PATH + "2821FE6574D4930635501353FDD4A060" + '/';
 } else if (mode === "exam") {
-    modeDir = path0 + "D89A19AC7F27403202BDFE55E29C61AB" + '/';
+    modeDir = BASE_PATH + "D89A19AC7F27403202BDFE55E29C61AB" + '/';
 } else if (mode === "other") {
-    i = files.listDir(path0, bookDetect);
-    modeDir = path0 + i[selectDialog(i, "选择模式")] + '/';
+    let modeDirList = files.listDir(BASE_PATH, bookDetect);
+    modeDir = BASE_PATH + modeDirList[selectDialog(modeDirList, "选择模式")] + '/';
 }
 
-i = files.listDir(modeDir, bookDetect);
-const dirPath = modeDir + i[selectDialog(i, "选择作业")] + '/';
+let bookList = files.listDir(modeDir, bookDetect);
+const DIR_PATH = modeDir + bookList[selectDialog(bookList, "选择作业")] + '/';
 
 function fileDetect(dirPath) {
     if (!files.exists(dirPath)) {
         throw new Error("文件夹不存在！");
     }
-    const types = ["page1.js", "correctAnswer.xml"];
-    for (let type of types) {
+    const TYPES = ["page1.js", "correctAnswer.xml"];
+    for (let type of TYPES) {
         const filePath = dirPath + '/' + type;
         if (files.exists(filePath)) {
             return filePath;
         }
     }
-    const dirs = [1, 2, 3];
-    for (let dir of dirs) {
+    const DIRS = [1, 2, 3];
+    for (let dir of DIRS) {
         if (files.exists(dirPath + dir)) {
             dir = dialogs.select("子目录选择", dirs) + 1;
             filePath = dirPath + '/' + dir + '/' + "page1.js";
@@ -83,8 +78,8 @@ function fileDetect(dirPath) {
         }
     }
     toast("未适配当前模式，开始模糊匹配！");
-    const filesInDir = files.listDir(dirPath);
-    for (let answerFile of filesInDir) {
+    const FILES_IN_DIR = files.listDir(dirPath);
+    for (let answerFile of FILES_IN_DIR) {
         if (answerFile.endsWith(".js") || answerFile.endsWith(".xml")) {
             return dirPath + '/' + answerFile;
         }
@@ -96,23 +91,23 @@ function JSONParse(text) {
     return JSON.parse(text);
 }
 
-const finalPath = fileDetect(dirPath);
-let text = files.read(finalPath);
-var obj;
-if (files.getName(finalPath) === "page1.js") {
-    obj = JSONParse(text);
-} else if (files.getExtension(finalPath) === "xml") {
-    obj = anXML.toJSONObject(text);
-    obj = JSON.parse(obj.toString());
-    obj = obj.elements;
+const FINAL_PATH = fileDetect(DIR_PATH);
+let text = files.read(FINAL_PATH);
+let answerObject;
+if (files.getName(FINAL_PATH) === "page1.js") {
+    answerObject = JSONParse(text);
+} else if (files.getExtension(FINAL_PATH) === "xml") {
+    answerObject = anXML.toJSONObject(text);
+    answerObject = JSON.parse(answerObject.toString());
+    answerObject = answerObject.elements;
 }
 
-function answers(answer_text) {
-    if (answer_text === "A") {
+function answers(answerText) {
+    if (answerText === "A") {
         return 0;
-    } else if (answer_text === "B") {
+    } else if (answerText === "B") {
         return 1;
-    } else if (answer_text === "C") {
+    } else if (answerText === "C") {
         return 2;
     }
 }
@@ -123,56 +118,54 @@ function answerTextProcess(value) {
 }
 
 const sectionProcess = value => value.slides.forEach(slideProcess);
-console.show();
 
 function slideProcess(value) {
     if (value.answer_text) {
-        print('');
+        console.log('');
         let answerContent = answerTextProcess(value);
-        print(answerContent);
+        console.log(answerContent);
         options.push(answerContent);
-    } else if (value.hasOwnProperty("questionList") || value.hasOwnProperty("questions_list")) {
+    } else if (Object.prototype.hasOwnProperty.call(value, "questionList") || Object.prototype.hasOwnProperty.call(value, "questions_list")) {
         if (Array.isArray(value.questionList)) {
             if (value.questionList.length !== 0) {
                 if (Array.isArray(value.questionList[0].questions_list)) {
-                    const m = n => n.questions_list.forEach(questionProcess);
-                    value.questionList.forEach(m);
+                    const f = m => m.questions_list.forEach(questionProcess);
+                    value.questionList.forEach(f);
                 } else {
                     value.questionList.forEach(questionProcess);
                 }
             }
         } else if (value.questions_list) {
-            //print(value);
             value.questions_list.forEach(questionProcess);
         }
     } else if (mode !== "exam" && value.analysis) {
-        print('');
-        print(tagclean(value.analysis));
+        console.log('');
+        console.log(tagclean(value.analysis));
     } else if (value.questionObj) {
         questionProcess(value.questionObj);
     }
 }
 
 function questionProcess(value) {
-    if (value.hasOwnProperty("answer_text") && value.options[0]) {
-        print('');
+    if (Object.prototype.hasOwnProperty.call(value, "answer_text") && value.options[0]) {
+        console.log('');
         let answerContent = answerTextProcess(value);
-        print(answerContent);
+        console.log(answerContent);
         options.push(answerContent);
-    } else if (value.hasOwnProperty("answers_list")) {
+    } else if (Object.prototype.hasOwnProperty.call(value, "answers_list")) {
         value.answers_list.forEach(answerProcess);
-    } else if (value.hasOwnProperty("questions_list")) {
-        const f = function(value) {
+    } else if (Object.prototype.hasOwnProperty.call(value, "questions_list")) {
+        const questionPreSort = value => {
             if (value.answer_text) {
-                print('');
-                let answerContent = answerTextProcess(value);
-                print(answerContent);
+                console.log('');
+                const answerContent = answerTextProcess(value);
+                console.log(answerContent);
                 options.push(answerContent);
             } else if (value.answers_list) {
                 value.answers_list.forEach(answerProcess);
             }
         }
-        value.questions_list.forEach(f);
+        value.questions_list.forEach(questionPreSort);
     } else if (value.answers) {
         if (Array.isArray(value.answers.answer)) {
             value.answers.answer.forEach(answerProcess);
@@ -180,57 +173,54 @@ function questionProcess(value) {
             answerProcess(value.answers.answer);
         }
     } else if (value.analysis) {
-        print('');
-        print(tagclean(value.analysis));
+        console.log('');
+        console.log(tagclean(value.analysis));
     }
 }
 
 function answerProcess(value) {
-    i = value.content;
-    print(i);
-    fills.push(i);
+    let content = value.content;
+    console.log(content);
+    fills.push(content);
 }
 
-function tagclean(i) {
-    let doc = Jsoup.parse(i, "text/html");
-    let x = doc.getElementsByTag("p");
-    if (x.text()) {
-        return x.text();
+function tagclean(html) {
+    let doc = Jsoup.parse(html, "text/html");
+    let cleanedHTML = doc.getElementsByTag("p");
+    if (cleanedHTML.text()) {
+        return cleanedHTML.text();
     } else {
-        return i;
+        return html;
     }
 }
 
 let options = [];
 let fills = [];
 
-if (obj.slides) {
-    obj.slides.forEach(slideProcess);
-} else if (obj.sliders) {
-    obj.sliders.forEach(slideProcess);
-} else if (obj.sections) {
-    obj.sections.forEach(sectionProcess);
-} else if (obj.practice) {
-    obj.practice.forEach(slideProcess);
-} else if (obj.element) {
-    obj.element.forEach(questionProcess);
+if (answerObject.slides) {
+    answerObject.slides.forEach(slideProcess);
+} else if (answerObject.sliders) {
+    answerObject.sliders.forEach(slideProcess);
+} else if (answerObject.sections) {
+    answerObject.sections.forEach(sectionProcess);
+} else if (answerObject.practice) {
+    answerObject.practice.forEach(slideProcess);
+} else if (answerObject.element) {
+    answerObject.element.forEach(questionProcess);
 }
 
 function selectOption(option) {
-    const y = option => className("android.view.View").textEndsWith(option).findOnce();
-    i = y(option);
-    if (!i) {
+    const findOption = option => className("android.view.View").textEndsWith(option).findOnce();
+    let optionButton = findOption(option);
+    if (!optionButton) {
         option = option.trim();
         option = option.replace("  ", " ");
-        i = y(option);
+        optionButton = findOption(option);
     }
-    if (i) {
-        i.click();
+    if (optionButton) {
+        optionButton.click();
     }
 }
-
-//print(options);
-//print(fills);
 
 console.show();
 
@@ -242,38 +232,38 @@ if (autoClick) {
     toast("请打开答题界面并点击“开始作答”！");
     waitForActivity("com.up366.mobile.book.StudyActivity");
     sleep(3500);
-    i = className("android.view.View").text("开始考试").findOnce();
-    if (i) {
-        i.click();
+    let examButton = className("android.view.View").text("开始考试").findOnce();
+    if (examButton) {
+        examButton.click();
     } else {
-        i = className("android.view.View").text("继续作答").findOnce();
-        if (i) {
-            i.click();
+        let examButton = className("android.view.View").text("继续作答").findOnce();
+        if (examButton) {
+            examButton.click();
         } else {
-            i = className("android.view.View").text("开始作答").findOnce();
-            if (i) {
-                i.click();
+            let examButton = className("android.view.View").text("开始作答").findOnce();
+            if (examButton) {
+                examButton.click();
             }
         }
     }
     sleep(2000);
     options.forEach(selectOption);
-    let a = 0;
+    let i = 0;
     const fill = text => {
-        let b = 2 * a + 1;
-        i = className("android.widget.EditText").editable(true).indexInParent(b).findOnce();
-        a++;
-        if (i) {
-            let x = text.indexOf('/');
-            if (x === -1) {
-                i.setText(text);
+        let index = 2 * i + 1;
+        i++;
+        const optionButton = className("android.widget.EditText").editable(true).indexInParent(index).findOnce();
+        if (optionButton) {
+            const textEitherIndex = text.indexOf('/');
+            if (textEitherIndex === -1) {
+                optionButton.setText(text);
             } else {
-                i.setText(text.slice(0, x));
+                optionButton.setText(text.slice(0, textEitherIndex));
             }
         }
     }
     fills.forEach(fill);
 }
 
-print("\nfinished");
+console.log("\nfinished");
 //
