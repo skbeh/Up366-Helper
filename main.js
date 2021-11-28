@@ -6,10 +6,18 @@ importClass("org.jsoup.Jsoup");
 
 toast("请开启悬浮窗权限和无障碍服务，如已开启可无视");
 
-let autoClick = confirm("是否自动做题？");
+const autoClick = confirm("是否自动做题？");
 if (autoClick) {
     auto.waitFor();
     auto.setMode("fast");
+}
+
+function checkLog(string) {
+    if (string) {
+        console.log(string + "\n");
+    } else {
+        console.log("Empty string!\n");
+    }
 }
 
 function bookDetect(dir) {
@@ -21,50 +29,60 @@ function bookDetect(dir) {
 }
 
 
-let modeInt = dialogs.select("选择模式", "练习模式", "考试模式", "其他");
-let mode;
-if (modeInt === -1) {
-    throw new Error("未选择模式！");
-} else if (modeInt === 0) {
-    mode = "exercise";
-} else if (modeInt === 1) {
-    mode = "exam";
-} else if (modeInt === 2) {
-    mode = "other";
-}
+const modeNumber = dialogs.select("选择模式", "练习模式", "考试模式", "其他");
+const homeworkMode = (modeNumber => {
+    switch (modeNumber) {
+        case -1:
+            throw new Error("Mode not selected!");
+        case 0:
+            return "exercise";
+            break;
+        case 1:
+            return "exam";
+            break;
+        case 2:
+            return "other";
+            break;
+        default:
+            throw new Error("Mode value error!");
+    }
+})(modeNumber);
 
 const BASE_PATH = files.getSdcardPath() + "/Up366Mobile/flipbook/flipbooks/";
 
 function selectDialog(x, text) {
-    if (x.length === 1) {
-        return 0;
-    } else if (x.length === 0) {
-        throw new Error("无可选择项！");
-    } else {
-        return dialogs.select(text, x);
+    switch (x.length) {
+        case 0:
+            throw new Error("Nothing to select!");
+        case 1:
+            return 0;
+        default:
+            return dialogs.select(text, x);
     }
 }
 
-let modeDir;
-if (mode === "exercise") {
-    modeDir = BASE_PATH + "2821FE6574D4930635501353FDD4A060" + '/';
-} else if (mode === "exam") {
-    modeDir = BASE_PATH + "D89A19AC7F27403202BDFE55E29C61AB" + '/';
-} else if (mode === "other") {
-    let modeDirList = files.listDir(BASE_PATH, bookDetect);
-    modeDir = BASE_PATH + modeDirList[selectDialog(modeDirList, "选择模式")] + '/';
-}
+const modeDir = (homeworkMode => {
+    switch (homeworkMode) {
+        case "exercise":
+            return BASE_PATH + "2821FE6574D4930635501353FDD4A060" + '/';
+        case "exam":
+            return BASE_PATH + "D89A19AC7F27403202BDFE55E29C61AB" + '/';
+        case "other":
+            const modeDirList = files.listDir(BASE_PATH, bookDetect);
+            return BASE_PATH + modeDirList[selectDialog(modeDirList, "选择模式")] + '/';
+    }
+})(homeworkMode)
 
-let bookList = files.listDir(modeDir, bookDetect);
-const DIR_PATH = modeDir + bookList[selectDialog(bookList, "选择作业")] + '/';
+const bookList = files.listDir(modeDir, bookDetect);
+const dirPath = modeDir + bookList[selectDialog(bookList, "选择作业")] + '/';
 
 function fileDetect(dirPath) {
     if (!files.exists(dirPath)) {
-        throw new Error("文件夹不存在！");
+        throw new Error("Directory not found!");
     }
     const TYPES = ["page1.js", "correctAnswer.xml"];
     for (let type of TYPES) {
-        const filePath = dirPath + '/' + type;
+        let filePath = dirPath + type;
         if (files.exists(filePath)) {
             return filePath;
         }
@@ -72,65 +90,86 @@ function fileDetect(dirPath) {
     const DIRS = [1, 2, 3];
     for (let dir of DIRS) {
         if (files.exists(dirPath + dir)) {
-            dir = dialogs.select("子目录选择", dirs) + 1;
-            filePath = dirPath + '/' + dir + '/' + "page1.js";
+            dir = dialogs.select("子目录选择", DIRS) + 1;
+            let filePath = dirPath + dir + '/' + "page1.js";
             return filePath;
         }
     }
     toast("未适配当前模式，开始模糊匹配！");
-    const FILES_IN_DIR = files.listDir(dirPath);
-    for (let answerFile of FILES_IN_DIR) {
+    const filesInDirJava = files.listDir(dirPath);
+    const filesInDir = filesInDirJava.map(file => String(file));
+    for (let answerFile of filesInDir) {
         if (answerFile.endsWith(".js") || answerFile.endsWith(".xml")) {
-            return dirPath + '/' + answerFile;
+            return dirPath + answerFile;
         }
     }
+
 }
+
 
 function JSONParse(text) {
     text = text.substring(15);
     return JSON.parse(text);
 }
 
-const FINAL_PATH = fileDetect(DIR_PATH);
-let text = files.read(FINAL_PATH);
-let answerObject;
-if (files.getName(FINAL_PATH) === "page1.js") {
-    answerObject = JSONParse(text);
-} else if (files.getExtension(FINAL_PATH) === "xml") {
-    answerObject = anXML.toJSONObject(text);
-    answerObject = JSON.parse(answerObject.toString());
-    answerObject = answerObject.elements;
-}
+const finalPath = fileDetect(dirPath);
+const unserializedText = files.read(finalPath);
+const answerObject = ((unserializedText) => {
+    switch (files.getExtension(finalPath)) {
+        case "js":
+            return JSONParse(unserializedText);
+        case "xml":
+            const XMLObject = anXML.toJSONObject(unserializedText);
+            return JSON.parse(XMLObject.toString()).elements;
+    }
+})(unserializedText);
 
-function answers(answerText) {
-    if (answerText === "A") {
-        return 0;
-    } else if (answerText === "B") {
-        return 1;
-    } else if (answerText === "C") {
-        return 2;
+function optionToNumber(answerText) {
+    switch (answerText) {
+        case 'A':
+            return 0;
+        case 'B':
+            return 1;
+        case 'C':
+            return 2;
+        case 'D':
+            return 3;
+        default:
+            throw new Error("The option can't be a letter after D!");
     }
 }
 
 function answerTextProcess(value) {
-    let answer = answers(value.answer_text);
-    return value.options[answer].content;
+    try {
+        const answer = optionToNumber(value.answer_text);
+    } catch (error) {
+        console.log(error);
+    }
+    if (value.options[answer]) {
+        return value.options[answer].content;
+    } else if (value.record_speak[0]) {
+        if (value.record_speak[0].content) {
+            return value.record_speak[0].content
+        } else {
+            return "Value error"
+        }
+    } else {
+        return 'No value';
+    }
 }
 
 const sectionProcess = value => value.slides.forEach(slideProcess);
 
 function slideProcess(value) {
     if (value.answer_text) {
-        console.log('');
-        let answerContent = answerTextProcess(value);
-        console.log(answerContent);
+        const answerContent = answerTextProcess(value);
+        checkLog(answerContent);
         options.push(answerContent);
     } else if (Object.prototype.hasOwnProperty.call(value, "questionList") || Object.prototype.hasOwnProperty.call(value, "questions_list")) {
         if (Array.isArray(value.questionList)) {
             if (value.questionList.length !== 0) {
                 if (Array.isArray(value.questionList[0].questions_list)) {
-                    const f = m => m.questions_list.forEach(questionProcess);
-                    value.questionList.forEach(f);
+                    value.questionList.forEach(part => part.questions_list.forEach(questionProcess));
                 } else {
                     value.questionList.forEach(questionProcess);
                 }
@@ -138,9 +177,8 @@ function slideProcess(value) {
         } else if (value.questions_list) {
             value.questions_list.forEach(questionProcess);
         }
-    } else if (mode !== "exam" && value.analysis) {
-        console.log('');
-        console.log(tagclean(value.analysis));
+    } else if (homeworkMode !== "exam" && value.analysis) {
+        checkLog(tagclean(value.analysis));
     } else if (value.questionObj) {
         questionProcess(value.questionObj);
     }
@@ -148,18 +186,16 @@ function slideProcess(value) {
 
 function questionProcess(value) {
     if (Object.prototype.hasOwnProperty.call(value, "answer_text") && value.options[0]) {
-        console.log('');
-        let answerContent = answerTextProcess(value);
-        console.log(answerContent);
+        const answerContent = answerTextProcess(value);
+        checkLog(answerContent);
         options.push(answerContent);
     } else if (Object.prototype.hasOwnProperty.call(value, "answers_list")) {
         value.answers_list.forEach(answerProcess);
     } else if (Object.prototype.hasOwnProperty.call(value, "questions_list")) {
         const questionPreSort = value => {
             if (value.answer_text) {
-                console.log('');
                 const answerContent = answerTextProcess(value);
-                console.log(answerContent);
+                checkLog(answerContent);
                 options.push(answerContent);
             } else if (value.answers_list) {
                 value.answers_list.forEach(answerProcess);
@@ -173,20 +209,18 @@ function questionProcess(value) {
             answerProcess(value.answers.answer);
         }
     } else if (value.analysis) {
-        console.log('');
-        console.log(tagclean(value.analysis));
+        checkLog(tagclean(value.analysis));
     }
 }
 
 function answerProcess(value) {
-    let content = value.content;
-    console.log(content);
-    fills.push(content);
+    checkLog(value.content);
+    fills.push(value.content);
 }
 
 function tagclean(html) {
-    let doc = Jsoup.parse(html, "text/html");
-    let cleanedHTML = doc.getElementsByTag("p");
+    const doc = Jsoup.parse(html, "text/html");
+    const cleanedHTML = doc.getElementsByTag("p");
     if (cleanedHTML.text()) {
         return cleanedHTML.text();
     } else {
@@ -266,4 +300,5 @@ if (autoClick) {
 }
 
 console.log("\nfinished");
+//;
 //

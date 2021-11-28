@@ -1,9 +1,13 @@
 {
-  "assets": [],
+  "assets": [
+    "lib.dex",
+    "main.js",
+    "project.json"
+  ],
   "build": {
-    "build_id": "590CB27A-14",
-    "build_number": 14,
-    "build_time": 1624184217886
+    "build_id": "E8E9E3FF-23",
+    "build_number": 23,
+    "build_time": 1632491817787
   },
   "useFeatures": [],
   "icon": "res/logo.png",
@@ -11,6 +15,6 @@
   "name": "天学网",
   "packageName": "com.up366.answer",
   "scripts": {},
-  "versionCode": 2,
-  "versionName": "0.0.2"
+  "versionCode": 42,
+  "versionName": "0.4.2"
 }
