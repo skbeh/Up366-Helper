@@ -1,10 +1,14 @@
-'use strict';
-
 runtime.loadDex('./lib.dex');
 importClass('org.anjson.anXML');
 importClass('org.jsoup.Jsoup');
 
+const options = [];
+const fills = [];
+const audios = {};
+
 toast('请开启悬浮窗权限和无障碍服务，如已开启可无视');
+
+const logFile = open(files.getSdcardPath() + '/up366/answer.txt', 'w');
 
 const autoClick = confirm('是否自动做题？');
 if (autoClick) {
@@ -14,7 +18,9 @@ if (autoClick) {
 
 function checkLog(string) {
     if (string) {
-        console.log(string + '\n');
+        const newLine = `${string}\n`;
+        console.log(newLine);
+        logFile.write(newLine);
     } else {
         console.log('Empty string\n');
     }
@@ -22,50 +28,51 @@ function checkLog(string) {
 
 function bookDetect(dir) {
     return dir.length === 32;
-};
+}
 
 const modeNumber = dialogs.select('选择模式', '练习模式', '考试模式', '其他');
 const homeworkMode = (() => {
     switch (modeNumber) {
-        case -1:
-            throw new RangeError('Mode not selected');
-        case 0:
-            return 'exercise';
-        case 1:
-            return 'exam';
-        case 2:
-            return 'other';
-        default:
-            throw new RangeError('Mode value error');
+    case -1:
+        throw RangeError('Mode not selected');
+    case 0:
+        return 'exercise';
+    case 1:
+        return 'exam';
+    case 2:
+        return 'other';
+    default:
+        throw RangeError('Mode value error');
     }
 })();
 
-const basePath = files.getSdcardPath() + '/Up366Mobile/flipbook/flipbooks/';
+// const basePath = files.getSdcardPath() + '/Android/data/com.up366.mobile/files/flipbook/';
+const basePath = files.getSdcardPath() + '/up366/';
 
-function selectDialog(x, text) {
-    switch (x.length) {
-        case 0:
-            throw new RangeError('Nothing to select');
-        case 1:
-            return 0;
-        default:
-            return dialogs.select(text, x);
+function selectDialog(array, text) {
+    switch (array.length) {
+    case 0:
+        throw RangeError('Nothing to select');
+    case 1:
+        return 0;
+    default:
+        return dialogs.select(text, array);
     }
 }
 
 const modeDir = (() => {
     switch (homeworkMode) {
-        case 'exercise':
-            return basePath + '2821FE6574D4930635501353FDD4A060/';
-        case 'exam':
-            return basePath + 'D89A19AC7F27403202BDFE55E29C61AB/';
-        case 'other':
-            {
-                const modeDirList = files.listDir(basePath, bookDetect);
-                return basePath + modeDirList[selectDialog(modeDirList, '选择模式')] + '/';
-            }
-        default:
-            throw new RangeError('Homework mode error');
+    case 'exercise':
+        return `${basePath}2821FE6574D4930635501353FDD4A060/`;
+    case 'exam':
+        return `${basePath}D89A19AC7F27403202BDFE55E29C61AB/`;
+    case 'other':
+    {
+        const modeDirList = files.listDir(basePath, bookDetect);
+        return basePath + modeDirList[selectDialog(modeDirList, '选择模式')] + '/';
+    }
+    default:
+        throw RangeError('Homework mode error');
     }
 })();
 
@@ -74,31 +81,29 @@ const dirPath = modeDir + bookList[selectDialog(bookList, '选择作业')] + '/'
 
 function fileDetect(dirPath) {
     if (!files.exists(dirPath)) {
-        throw new RangeError('Directory not found');
+        throw RangeError('Directory not found');
     }
     const answerFileTypes = ['page1.js', 'correctAnswer.xml'];
-    for (let type of answerFileTypes) {
-        let filePath = dirPath + type;
-        if (files.exists(filePath)) {
-            return filePath;
-        }
+    let filePath = '';
+    if (answerFileTypes.some((type) => {
+        filePath = dirPath + type;
+        return files.exists(filePath) ? files.read(filePath).length > 1024 : false;
+    })) {
+        return filePath;
+    }
+    const dirCodeList = files.listDir(dirPath, (dirCode) => files.exists(`${dirPath}/${dirCode}/page1.js`));
+    if (dirCodeList.length > 0) {
+        return dirCodeList[dialogs.select('子目录选择', dirCodeList)];
     }
 
-    const dirs = [1, 2, 3];
-    for (let dir of dirs) {
-        if (files.exists(dirPath + dir)) {
-            dir = dialogs.select('子目录选择', dirs) + 1;
-            let filePath = dirPath + dir + '/page1.js';
-            return filePath;
-        }
-    }
     toast('未适配当前模式，开始模糊匹配！');
     const filesInDirJava = files.listDir(dirPath);
     const filesInDir = filesInDirJava.map((file) => String(file));
-    for (let answerFile of filesInDir) {
-        if (answerFile.endsWith('.js') || answerFile.endsWith('.xml')) {
-            return dirPath + answerFile;
-        }
+    if (filesInDir.some((answerFile) => {
+        filePath = dirPath + answerFile;
+        return answerFile.endsWith('.js') || answerFile.endsWith('.xml');
+    })) {
+        return filePath;
     }
     throw Error('Answer file not found');
 }
@@ -109,28 +114,44 @@ const finalPath = fileDetect(dirPath);
 const unserializedText = files.read(finalPath);
 const answerObject = (() => {
     switch (files.getExtension(finalPath)) {
-        case 'js':
-            return JSONParse(unserializedText);
-        case 'xml':
-            return JSON.parse(anXML.toJSONObject(unserializedText).toString()).elements;
-        default:
-            throw RangeError('Answer file extension error');
+    case 'js':
+        return JSONParse(unserializedText);
+    case 'xml':
+        return JSON.parse(anXML.toJSONObject(unserializedText).toString()).elements;
+    default:
+        throw RangeError('Answer file extension error');
     }
 })();
 
 function optionToNumber(answerText) {
     switch (answerText) {
-        case 'A':
-            return 0;
-        case 'B':
-            return 1;
-        case 'C':
-            return 2;
-        case 'D':
-            return 3;
-        default:
-            throw new RangeError('The option can not be a letter after D');
+    case 'A':
+        return 0;
+    case 'B':
+        return 1;
+    case 'C':
+        return 2;
+    case 'D':
+        return 3;
+    default:
+        throw RangeError('The option can not be a letter after D');
     }
+}
+
+function cleanTag(html, tag) {
+    const doc = Jsoup.parse(html, 'text/html');
+    if (tag) {
+        return doc.getElementsByTag(tag).text();
+    }
+    let cleanedHTML = doc.getElementsByTag('p');
+    if (cleanedHTML.text() && cleanedHTML.text() !== html) {
+        return cleanedHTML.text();
+    }
+    cleanedHTML = doc.getElementsByTag('em');
+    if (cleanedHTML.text()) {
+        return cleanedHTML.text();
+    }
+    return html;
 }
 
 function answerTextProcess(value) {
@@ -183,7 +204,10 @@ function questionProcess(value) {
             answerProcess(value.answers.answer);
         }
     } else if (value.analysis) {
-        checkLog(tagclean(value.analysis));
+        checkLog(cleanTag(value.analysis));
+    } else if (value.question_no) {
+        const audioFile = dirPath + Jsoup.parse(value.question_text, 'text/html').getElementsByAttribute('has_audio').attr('url');
+        audios[value.question_no] = audioFile;
     }
 }
 
@@ -196,7 +220,7 @@ function slideProcess(value) {
         if (Array.isArray(value.questionList)) {
             if (value.questionList.length !== 0) {
                 if (Array.isArray(value.questionList[0].questions_list)) {
-                    value.questionList.forEach(part => part.questions_list.forEach(questionProcess));
+                    value.questionList.forEach((part) => part.questions_list.forEach(questionProcess));
                 } else {
                     value.questionList.forEach(questionProcess);
                 }
@@ -205,25 +229,13 @@ function slideProcess(value) {
             value.questions_list.forEach(questionProcess);
         }
     } else if (homeworkMode !== 'exam' && value.analysis) {
-        checkLog(tagclean(value.analysis));
+        checkLog(cleanTag(value.analysis));
     } else if (value.questionObj) {
         questionProcess(value.questionObj);
     }
 }
 
 const sectionProcess = (value) => value.slides.forEach(slideProcess);
-
-function tagclean(html) {
-    const doc = Jsoup.parse(html, 'text/html');
-    const cleanedHTML = doc.getElementsByTag('p');
-    if (cleanedHTML.text()) {
-        return cleanedHTML.text();
-    }
-    return html;
-}
-
-let options = [];
-let fills = [];
 
 if (answerObject.slides) {
     answerObject.slides.forEach(slideProcess);
@@ -238,13 +250,20 @@ if (answerObject.slides) {
 }
 
 function selectOption(option) {
-    const findOption = (option) => className('android.view.View').textEndsWith(option).findOnce();
+    const findOption = (option) => className('android.widget.TextView').textContains(option).findOnce();
     let optionButton = findOption(option);
-    if (!optionButton) {
-        optionButton = findOption(option.trim().replace('  ', ' '));
-    }
     if (optionButton) {
         optionButton.click();
+    } else {
+        optionButton = findOption(option.trim().replace('  ', ' '));
+        if (optionButton) {
+            optionButton.click();
+        } else {
+            optionButton = findOption(cleanTag(option));
+            if (optionButton) {
+                optionButton.click();
+            }
+        }
     }
 }
 
@@ -258,15 +277,19 @@ if (autoClick) {
     toast('请打开答题界面并点击“开始作答”！');
     waitForActivity('com.up366.mobile.book.StudyActivity');
     sleep(3500);
-    let examButton = className('android.view.View').text('开始考试').findOnce();
+    let examButton = className('android.widget.TextView').text('开始考试').findOnce();
     if (examButton) {
         examButton.click();
+        examButton = className('android.widget.TextView').text('开始作答').findOnce();
+        if (examButton) {
+            examButton.click();
+        }
     } else {
-        let examButton = className('android.view.View').text('继续作答').findOnce();
+        examButton = className('android.widget.TextView').text('继续作答').findOnce();
         if (examButton) {
             examButton.click();
         } else {
-            let examButton = className('android.view.View').text('开始作答').findOnce();
+            examButton = className('android.widget.TextView').text('开始作答').findOnce();
             if (examButton) {
                 examButton.click();
             }
@@ -277,7 +300,7 @@ if (autoClick) {
     let i = 0;
     const fill = (text) => {
         const index = 2 * i + 1;
-        i++;
+        i += 1;
         const optionButton = className('android.widget.EditText').editable(true).indexInParent(index).findOnce();
         if (optionButton) {
             const textEitherIndex = text.indexOf('/');
@@ -288,8 +311,31 @@ if (autoClick) {
             }
         }
     };
+    const playAudio = (audioNumber) => {
+        className('android.webkit.WebView').text('校本作答页面').findOnce().child(0)
+            .child(0)
+            .find(clickable(true))[1].click();
+        className('android.widget.TextView').clickable(true).text(audioNumber).findOne()
+            .click();
+        const playView = className('android.widget.TextView').clickable(false).text(audioNumber).findOne()
+            .parent()
+            .parent()
+            .parent()
+            .child(2);
+        const playButton = playView.findOne(text('点击录音')).parent().child(1);
+        do {
+            playButton.click();
+            sleep(100);
+        } while (className('android.widget.TextView').text('上一段音频正在评分中，请稍候').findOnce());
+        media.playMusic(audios[audioNumber]);
+        sleep(media.getMusicDuration());
+        playView.child(3).child(2).click();
+    };
     fills.forEach(fill);
+    Object.keys(audios).forEach(playAudio);
 }
+
+logFile.close();
 
 console.log('\nfinished');
 //

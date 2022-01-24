@@ -1,20 +1,38 @@
 {
-  "assets": [
-    "lib.dex",
-    "main.js",
-    "project.json"
-  ],
-  "build": {
-    "build_id": "E8E9E3FF-23",
-    "build_number": 23,
-    "build_time": 1632491817787
-  },
-  "useFeatures": [],
-  "icon": "res/logo.png",
-  "main": "main.js",
-  "name": "天学网",
-  "packageName": "com.up366.answer",
-  "scripts": {},
-  "versionCode": 42,
-  "versionName": "0.4.2"
+    "assets": [
+        "lib.dex",
+        "main.js",
+        "project.json"
+    ],
+    "build": {
+        "build_id": "C78E5390-46",
+        "build_number": 46,
+        "build_time": 1642935811025
+    },
+    "encryptLevel": 0,
+    "useFeatures": [],
+    "icon": "res/logo.png",
+    "launchConfig": {
+        "hideLauncher": false,
+        "hideLogs": false,
+        "displaySplash": false,
+        "serviceDesc": "使脚本自动操作(点击、长按、滑动等)所需，若关闭则只能执行不涉及自动操作的脚本。",
+        "splashText": "",
+        "stableMode": false,
+        "volumeUpcontrol": true
+    },
+    "main": "main.js",
+    "name": "天学网",
+    "optimization": {
+        "removeOpenCv": true,
+        "unusedResources": true
+    },
+    "packageName": "com.up366.answer",
+    "scripts": {},
+    "signingConfig": {
+        "alias": "",
+        "keystore": ""
+    },
+    "versionCode": 43,
+    "versionName": "0.4.3"
 }

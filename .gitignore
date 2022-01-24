@@ -1,1 +1,8 @@
-build/
+/build/
+/main.js.bak
+
+/.yarnrc.yml
+/.yarn/
+/.pnp.cjs
+/.pnp.loader.mjs
+/yarn.lock
