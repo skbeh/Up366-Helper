@@ -1,4 +1,4 @@
-runtime.loadDex('./lib.dex');
+runtime.loadDex(files.getSdcardPath() + '/脚本/天学网/lib.dex');
 importClass('org.anjson.anXML');
 importClass('org.jsoup.Jsoup');
 
