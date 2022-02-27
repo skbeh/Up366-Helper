@@ -1,10 +1,33 @@
 {
-    "name": "新建项目",
-    "main": "main.js",
-    "ignore": [
-        "build"
-    ],
-    "packageName": "com.example",
-    "versionName": "1.0.0",
-    "versionCode": 1
+  "assets": [
+    "lib.dex",
+    "main.js",
+    "project.json"
+  ],
+  "build": {
+    "build_id": "78657A13-47",
+    "build_number": 47,
+    "build_time": 1643023539346
+  },
+  "useFeatures": [],
+  "icon": "res/logo.png",
+  "launchConfig": {
+    "hideLauncher": false,
+    "hideLogs": false,
+    "displaySplash": false,
+    "serviceDesc": "使脚本自动操作(点击、长按、滑动等)所需，若关闭则只能执行不涉及自动操作的脚本。",
+    "splashText": "",
+    "stableMode": false,
+    "volumeUpcontrol": true
+  },
+  "main": "main.js",
+  "name": "天学网",
+  "packageName": "com.up366.answer",
+  "scripts": {},
+  "signingConfig": {
+    "alias": "",
+    "keystore": ""
+  },
+  "versionCode": 43,
+  "versionName": "0.4.3"
 }
