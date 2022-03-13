@@ -1,26 +1,20 @@
-runtime.loadDex(files.getSdcardPath() + '/脚本/天学网/lib.dex');
+'use strict';
+
+runtime.loadDex(`${files.getSdcardPath()}/脚本/天学网/lib.dex`);
 importClass('org.anjson.anXML');
 importClass('org.jsoup.Jsoup');
 
-const options = [];
-const fills = [];
-const audios = {};
+const OptionArray = [];
+const FillArray = [];
+const AudioArray = {};
 
-toast('请开启悬浮窗权限和无障碍服务，如已开启可无视');
-
-const logFile = open(files.getSdcardPath() + '/up366/answer.txt', 'w');
-
-const autoClick = confirm('是否自动做题？');
-if (autoClick) {
-    auto.waitFor();
-    auto.setMode('fast');
-}
+let LogFile;
 
 function checkLog(string) {
     if (string) {
         const newLine = `${string}\n`;
         console.log(newLine);
-        logFile.write(newLine);
+        LogFile.write(newLine);
     } else {
         console.log('Empty string\n');
     }
@@ -29,25 +23,6 @@ function checkLog(string) {
 function bookDetect(dir) {
     return dir.length === 32;
 }
-
-const modeNumber = dialogs.select('选择模式', '练习模式', '考试模式', '其他');
-const homeworkMode = (() => {
-    switch (modeNumber) {
-    case -1:
-        throw RangeError('Mode not selected');
-    case 0:
-        return 'exercise';
-    case 1:
-        return 'exam';
-    case 2:
-        return 'other';
-    default:
-        throw RangeError('Mode value error');
-    }
-})();
-
-// const basePath = files.getSdcardPath() + '/Android/data/com.up366.mobile/files/flipbook/';
-const basePath = files.getSdcardPath() + '/up366/';
 
 function selectDialog(array, text) {
     switch (array.length) {
@@ -60,7 +35,7 @@ function selectDialog(array, text) {
     }
 }
 
-const modeDir = (() => {
+function homeworkModeToDir(homeworkMode, basePath) {
     switch (homeworkMode) {
     case 'exercise':
         return `${basePath}2821FE6574D4930635501353FDD4A060/`;
@@ -69,15 +44,12 @@ const modeDir = (() => {
     case 'other':
     {
         const modeDirList = files.listDir(basePath, bookDetect);
-        return basePath + modeDirList[selectDialog(modeDirList, '选择模式')] + '/';
+        return `${basePath + modeDirList[selectDialog(modeDirList, '选择模式')]}/`;
     }
     default:
         throw RangeError('Homework mode error');
     }
-})();
-
-const bookList = files.listDir(modeDir, bookDetect);
-const dirPath = modeDir + bookList[selectDialog(bookList, '选择作业')] + '/';
+}
 
 function fileDetect(dirPath) {
     if (!files.exists(dirPath)) {
@@ -109,19 +81,6 @@ function fileDetect(dirPath) {
 }
 
 const JSONParse = (text) => JSON.parse(text.substring(15));
-
-const finalPath = fileDetect(dirPath);
-const unserializedText = files.read(finalPath);
-const answerObject = (() => {
-    switch (files.getExtension(finalPath)) {
-    case 'js':
-        return JSONParse(unserializedText);
-    case 'xml':
-        return JSON.parse(anXML.toJSONObject(unserializedText).toString()).elements;
-    default:
-        throw RangeError('Answer file extension error');
-    }
-})();
 
 function optionToNumber(answerText) {
     switch (answerText) {
@@ -176,14 +135,14 @@ function answerTextProcess(value) {
 
 function answerProcess(value) {
     checkLog(value.content);
-    fills.push(value.content);
+    FillArray.push(value.content);
 }
 
 function questionProcess(value) {
     if (Object.prototype.hasOwnProperty.call(value, 'answer_text') && value.options[0]) {
         const answerContent = answerTextProcess(value);
         checkLog(answerContent);
-        options.push(answerContent);
+        OptionArray.push(answerContent);
     } else if (Object.prototype.hasOwnProperty.call(value, 'answers_list')) {
         value.answers_list.forEach(answerProcess);
     } else if (Object.prototype.hasOwnProperty.call(value, 'questions_list')) {
@@ -191,7 +150,7 @@ function questionProcess(value) {
             if (value.answer_text) {
                 const answerContent = answerTextProcess(value);
                 checkLog(answerContent);
-                options.push(answerContent);
+                OptionArray.push(answerContent);
             } else if (value.answers_list) {
                 value.answers_list.forEach(answerProcess);
             }
@@ -206,8 +165,8 @@ function questionProcess(value) {
     } else if (value.analysis) {
         checkLog(cleanTag(value.analysis));
     } else if (value.question_no) {
-        const audioFile = dirPath + Jsoup.parse(value.question_text, 'text/html').getElementsByAttribute('has_audio').attr('url');
-        audios[value.question_no] = audioFile;
+        const audioFile = Jsoup.parse(value.question_text, 'text/html').getElementsByAttribute('has_audio').attr('url');
+        AudioArray[value.question_no] = audioFile;
     }
 }
 
@@ -215,7 +174,7 @@ function slideProcess(value) {
     if (value.answer_text) {
         const answerContent = answerTextProcess(value);
         checkLog(answerContent);
-        options.push(answerContent);
+        OptionArray.push(answerContent);
     } else if (Object.prototype.hasOwnProperty.call(value, 'questionList') || Object.prototype.hasOwnProperty.call(value, 'questions_list')) {
         if (Array.isArray(value.questionList)) {
             if (value.questionList.length !== 0) {
@@ -228,7 +187,7 @@ function slideProcess(value) {
         } else if (value.questions_list) {
             value.questions_list.forEach(questionProcess);
         }
-    } else if (homeworkMode !== 'exam' && value.analysis) {
+    } else if (value.analysis) {
         checkLog(cleanTag(value.analysis));
     } else if (value.questionObj) {
         questionProcess(value.questionObj);
@@ -236,18 +195,6 @@ function slideProcess(value) {
 }
 
 const sectionProcess = (value) => value.slides.forEach(slideProcess);
-
-if (answerObject.slides) {
-    answerObject.slides.forEach(slideProcess);
-} else if (answerObject.sliders) {
-    answerObject.sliders.forEach(slideProcess);
-} else if (answerObject.sections) {
-    answerObject.sections.forEach(sectionProcess);
-} else if (answerObject.practice) {
-    answerObject.practice.forEach(slideProcess);
-} else if (answerObject.element) {
-    answerObject.element.forEach(questionProcess);
-}
 
 function selectOption(option) {
     const findOption = (option) => className('android.widget.TextView').textContains(option).findOnce();
@@ -267,75 +214,160 @@ function selectOption(option) {
     }
 }
 
-console.show();
+function main() {
+    const basePath = device.sdkInt >= 29 ? `${files.getSdcardPath()}/up366/` : `${files.getSdcardPath()}/Android/data/com.up366.mobile/files/flipbook/`;
 
-if (autoClick) {
-    if (currentPackage() !== 'com.up366.mobile') {
-        app.launchPackage('com.up366.mobile');
-        sleep(150);
-    }
-    toast('请打开答题界面并点击“开始作答”！');
-    waitForActivity('com.up366.mobile.book.StudyActivity');
-    sleep(3500);
-    let examButton = className('android.widget.TextView').text('开始考试').findOnce();
-    if (examButton) {
-        examButton.click();
-        examButton = className('android.widget.TextView').text('开始作答').findOnce();
-        if (examButton) {
-            examButton.click();
+    const modeNumber = dialogs.select('选择模式', '练习模式', '考试模式', '其他');
+    const homeworkMode = (() => {
+        switch (modeNumber) {
+        case -1:
+            throw RangeError('Mode not selected');
+        case 0:
+            return 'exercise';
+        case 1:
+            return 'exam';
+        case 2:
+            return 'other';
+        default:
+            throw RangeError('Mode value error');
         }
-    } else {
-        examButton = className('android.widget.TextView').text('继续作答').findOnce();
+    })();
+
+    toast('请开启悬浮窗权限和无障碍服务，如已开启可无视');
+
+    LogFile = open(`${files.getSdcardPath()}/up366/answer.txt`, 'w');
+
+    const autoClick = confirm('是否自动做题？');
+    if (autoClick) {
+        auto.waitFor();
+        auto.setMode('fast');
+    }
+
+    const modeDir = homeworkModeToDir(homeworkMode, basePath);
+
+    const bookList = files.listDir(modeDir, bookDetect);
+    const dirPath = `${modeDir + bookList[selectDialog(bookList, '选择作业')]}/`;
+
+    const finalPath = fileDetect(dirPath);
+    const unserializedText = files.read(finalPath);
+    const answerObject = (() => {
+        switch (files.getExtension(finalPath)) {
+        case 'js':
+            return JSONParse(unserializedText);
+        case 'xml':
+            return JSON.parse(anXML.toJSONObject(unserializedText).toString()).elements;
+        default:
+            throw RangeError('Answer file extension error');
+        }
+    })();
+
+    if (answerObject.slides) {
+        answerObject.slides.forEach(slideProcess);
+    } else if (answerObject.sliders) {
+        answerObject.sliders.forEach(slideProcess);
+    } else if (answerObject.sections) {
+        answerObject.sections.forEach(sectionProcess);
+    } else if (answerObject.practice) {
+        answerObject.practice.forEach(slideProcess);
+    } else if (answerObject.element) {
+        answerObject.element.forEach(questionProcess);
+    }
+
+    console.show();
+
+    if (autoClick) {
+        if (currentPackage() !== 'com.up366.mobile') {
+            app.launchPackage('com.up366.mobile');
+            sleep(150);
+        }
+
+        toast('请打开答题界面并点击“开始作答”！');
+        waitForActivity('com.up366.mobile.book.StudyActivity');
+        sleep(3500);
+
+        let examButton = className('android.widget.TextView').text('开始考试').findOnce();
         if (examButton) {
             examButton.click();
-        } else {
             examButton = className('android.widget.TextView').text('开始作答').findOnce();
             if (examButton) {
                 examButton.click();
             }
-        }
-    }
-    sleep(2000);
-    options.forEach(selectOption);
-    let i = 0;
-    const fill = (text) => {
-        const index = 2 * i + 1;
-        i += 1;
-        const optionButton = className('android.widget.EditText').editable(true).indexInParent(index).findOnce();
-        if (optionButton) {
-            const textEitherIndex = text.indexOf('/');
-            if (textEitherIndex === -1) {
-                optionButton.setText(text);
+        } else {
+            examButton = className('android.widget.TextView').text('继续作答').findOnce();
+            if (examButton) {
+                examButton.click();
             } else {
-                optionButton.setText(text.slice(0, textEitherIndex));
+                examButton = className('android.widget.TextView').text('开始作答').findOnce();
+                if (examButton) {
+                    examButton.click();
+                }
             }
         }
-    };
-    const playAudio = (audioNumber) => {
-        className('android.webkit.WebView').text('校本作答页面').findOnce().child(0)
-            .child(0)
-            .find(clickable(true))[1].click();
-        className('android.widget.TextView').clickable(true).text(audioNumber).findOne()
-            .click();
-        const playView = className('android.widget.TextView').clickable(false).text(audioNumber).findOne()
-            .parent()
-            .parent()
-            .parent()
-            .child(2);
-        const playButton = playView.findOne(text('点击录音')).parent().child(1);
-        do {
-            playButton.click();
-            sleep(100);
-        } while (className('android.widget.TextView').text('上一段音频正在评分中，请稍候').findOnce());
-        media.playMusic(audios[audioNumber]);
-        sleep(media.getMusicDuration());
-        playView.child(3).child(2).click();
-    };
-    fills.forEach(fill);
-    Object.keys(audios).forEach(playAudio);
+
+        sleep(2000);
+        OptionArray.forEach(selectOption);
+        let i = 0;
+        const fill = (text) => {
+            const index = 2 * i + 1;
+            i += 1;
+            const optionButton = className('android.widget.EditText').editable(true).indexInParent(index).findOnce();
+            if (optionButton) {
+                const textEitherIndex = text.indexOf('/');
+                if (textEitherIndex === -1) {
+                    optionButton.setText(text);
+                } else {
+                    optionButton.setText(text.slice(0, textEitherIndex));
+                }
+            }
+        };
+
+        const playAudio = (audioNumber) => {
+            try {
+                media.playMusic(dirPath + AudioArray[audioNumber]);
+            } catch (error) {
+                console.log(error);
+                const audioFileArray = files.listDir(dirPath, (fileName) => fileName === files.getName(AudioArray[audioNumber]));
+                if (audioFileArray.length !== 0) {
+                    media.playMusic(audioFileArray[0]);
+                }
+            }
+            media.pauseMusic();
+
+            className('android.webkit.WebView').text('校本作答页面').findOnce().child(0)
+                .child(0)
+                .find(clickable(true))[1].click();
+            className('android.widget.TextView').clickable(true).text(audioNumber).findOne()
+                .click();
+            const playView = className('android.widget.TextView').clickable(false).text(audioNumber).findOne()
+                .parent()
+                .parent()
+                .parent()
+                .child(2);
+            const playButton = playView.findOne(text('点击录音')).parent().child(1);
+            sleep(50);
+            do {
+                playButton.click();
+                sleep(50);
+            } while (className('android.widget.TextView').text('上一段音频正在评分中，请稍候').findOnce());
+            media.musicSeekTo(250);
+            media.resumeMusic();
+            sleep(media.getMusicDuration() - 500);
+            media.stopMusic();
+
+            const stopButtonParent = playView.child(3);
+            for (let i = 0; stopButtonParent.childCount() < 3; i += 1) {
+                if (i > 3) { return; }
+                sleep(50);
+            }
+            stopButtonParent.child(2).click();
+        };
+
+        FillArray.forEach(fill);
+        Object.keys(AudioArray).forEach(playAudio);
+    }
+
+    LogFile.close();
+    console.log('\nfinished');
 }
 
-logFile.close();
-
-console.log('\nfinished');
-//
+main();

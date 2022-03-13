@@ -1,11 +1,49 @@
 {
+  "name": "app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "scripts": {
+    "start": "yarn webpack --config webpack.config.js --watch --mode=development",
+    "build": "yarn webpack --config webpack.config.js --mode=production"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.4.0",
+    "@babel/plugin-transform-modules-commonjs": "^7.7.4",
+    "@babel/plugin-transform-runtime": "^7.6.2",
+    "@babel/preset-env": "^7.4.2",
+    "@babel/runtime": "^7.7.4",
+    "@typescript-eslint/eslint-plugin": "^5.14.0",
+    "@typescript-eslint/parser": "^5.14.0",
+    "autox-deploy-webpack-plugin": "^1.0.7",
+    "autox-header-webpack-plugin": "^1.0.3",
+    "babel-loader": "^8.0.5",
+    "babel-plugin-transform-remove-strict-mode": "0.0.2",
+    "clean-webpack-plugin": "^3.0.0",
+    "copy-webpack-plugin": "^6.1.0",
+    "eslint": "8.10.0",
+    "html-webpack-inline-source-plugin": "0.0.10",
+    "html-webpack-plugin": "^3.2.0",
+    "javascript-obfuscator": "^2.6.1",
+    "pnp-webpack-plugin": "^1.7.0",
+    "randomstring": "^1.1.5",
+    "ts-loader": "^6.2.1",
+    "typescript": "^3.6.4",
+    "url-loader": "^1.1.2",
+    "webpack": "^4.41.4",
+    "webpack-autojs-loader": "^1.1.2",
+    "webpack-cli": "^3.3.12",
+    "webpack-obfuscator": "^2.6.0"
+  },
   "dependencies": {
-    "@berry/pnpify": "^0.1.0",
+    "@babel/polyfill": "^7.4.0",
     "@uwhealth/eslint-plugin-environments": "^1.5.5",
-    "eslint": "^8.10.0",
+    "es6-shim": "^0.35.5",
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.25.4",
-    "typescript": "^4.5.5"
+    "terser-webpack-plugin": "4.2.3"
   },
   "packageManager": "yarn@3.2.0"
 }
