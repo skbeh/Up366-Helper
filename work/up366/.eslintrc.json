@@ -1,6 +1,8 @@
 {
+    "parser": "@typescript-eslint/parser",
     "plugins": [
-        "@uwhealth/environments"
+        "@uwhealth/environments",
+        "@typescript-eslint"
     ],
     "env": {
         "@uwhealth/environments/rhino": true
@@ -25,9 +27,9 @@
         "media": "readonly",
         "device": "readonly"
     },
-    "extends": "airbnb-base",
+    "extends": "airbnb",
     "parserOptions": {
-        "ecmaVersion": 6
+        "ecmaVersion": 2018
     },
     "rules": {
         "indent": [
@@ -51,6 +53,10 @@
         "no-shadow": "off",
         "max-len": "off",
         "no-alert": "off",
-        "strict":"off"
+        "strict": "off",
+        "@typescript-eslint/consistent-type-definitions": [
+            "error",
+            "interface"
+        ]
     }
 }

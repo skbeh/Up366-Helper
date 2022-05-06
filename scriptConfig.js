@@ -1,15 +1,15 @@
 
 //定义要编译的项目，compile， true 表示编译，false，不编译
-var projects = [ //项目数组，放的是每一个要编译的项目，
+const projects = [ //项目数组，放的是每一个要编译的项目，
   {
     id: 1, //项目号
     compile: true, //是否编译
     name: "up366", //项目名称，需要和文件夹名相同
-    main: "./main.js" //主入文件，入口文件，按autojs目录，一般和project.json 同级
+    main: "./main.ts" //主入文件，入口文件，按autojs目录，一般和project.json 同级
   }
 ]
 
-var config = {
+const config = {
   watch: "rerun", //watch模式的时候，是自动deploy（部署）、或 rerun（重新运行）、还是none（不操作），
   baseDir: "./work", //放置多个项目的工作目录，每一个项目独立文件夹，
   base64: false,

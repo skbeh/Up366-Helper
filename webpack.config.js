@@ -5,50 +5,67 @@ const AutoxHeaderWebpackPlugin = require("autox-header-webpack-plugin");
 const WatchDeployPlugin = require("autox-deploy-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const PnpWebpackPlugin = require("pnp-webpack-plugin");
-const TerserPlugin = require("terser-webpack-plugin");
-var scriptConfig = require('./scriptConfig.js');
+const scriptConfig = require("./scriptConfig.js");
 
-var headerFile = path.resolve(__dirname, scriptConfig.header);
-var headerText = fs.readFileSync(headerFile, "utf8").trim();
+const headerFile = path.resolve(__dirname, scriptConfig.header);
+const headerText = fs.readFileSync(headerFile, "utf8").trim();
 
-var dist = "./dist";
-var entry = {};
-var copyPatterns = [];
-var projectsMain={};
-scriptConfig.projects.forEach(project => {
+const dist = "./dist";
+let entry = {};
+let copyPatterns = [];
+let projectsMain = {};
+scriptConfig.projects.forEach((project) => {
   if (!project.compile) {
     return false;
   }
-  var projectName = project.name;
-  var outProjectName = scriptConfig.projectPrefix + project.name;
-  projectsMain[projectName]=project.main
-  
-  var entryPathName = path.posix.resolve(scriptConfig.baseDir, projectName, project.main);
-  var outPathName = path.posix.resolve("/", outProjectName, project.main);
-  outPathName = outPathName.replace(".js", "").replace('.ts','');
+  const projectName = project.name;
+  const outProjectName = scriptConfig.projectPrefix + project.name;
+  projectsMain[projectName] = project.main;
+
+  const entryPathName = path.posix.resolve(
+    scriptConfig.baseDir,
+    projectName,
+    project.main
+  );
+  let outPathName = path.posix.resolve("/", outProjectName, project.main);
+  outPathName = outPathName.replace(".js", "").replace(".ts", "");
   entry[outPathName] = entryPathName;
-  if(project.others){
-      for (let index = 0; index < project.others.length; index++) {
-             const fileName = project.others[index];
-             const outFileName=path.posix.resolve("/", outProjectName, fileName).replace('.js','').replace('.ts','');
-             entry[outFileName] = path.posix.resolve(scriptConfig.baseDir, projectName, fileName);
-      }
+  if (project.others) {
+    for (let index = 0; index < project.others.length; index++) {
+      const fileName = project.others[index];
+      const outFileName = path.posix
+        .resolve("/", outProjectName, fileName)
+        .replace(".js", "")
+        .replace(".ts", "");
+      entry[outFileName] = path.posix.resolve(
+        scriptConfig.baseDir,
+        projectName,
+        fileName
+      );
+    }
   }
-  //copy 文件  
-  var fromPath = path.posix.resolve(scriptConfig.baseDir, projectName).replace(/\\/g, '/') + "";
-  var toPath = path.posix.resolve(dist, outProjectName).replace(/\\/g, '/') + "";
-  var pattern = {
+  //copy 文件
+  const fromPath =
+    path.posix.resolve(scriptConfig.baseDir, projectName).replace(/\\/g, "/") +
+    "";
+  const toPath =
+    path.posix.resolve(dist, outProjectName).replace(/\\/g, "/") + "";
+  const pattern = {
     from: fromPath,
     to: toPath,
     globOptions: {
-      ignore: ['**/.eslintrc.json', '**/JSON-java.dex', '**/jsoup.dex', '**/LICENSE']
-    }
+      ignore: [
+        "**/.eslintrc.json",
+        "**/JSON-java.dex",
+        "**/jsoup.dex",
+        "**/LICENSE",
+        "**/main.ts",
+      ],
+    },
   };
-  // console.error(pattern);
   copyPatterns.push(pattern);
 });
-module.exports = function (env, argv) {
-  var prod = argv.mode == 'production'
+module.exports = function (_env, argv) {
   return {
     entry: entry,
     output: {
@@ -57,25 +74,15 @@ module.exports = function (env, argv) {
     },
     target: scriptConfig.target,
     mode: argv.mode,
-    devtool: prod ? 'none' : 'none',
-    optimization: {
-      minimizer: [new TerserPlugin({
-        terserOptions:{
-          ecma: 2015,
-          module: false,
-          mangle: false
-        }
-      })]
-    },
     plugins: [
       new AutoxHeaderWebpackPlugin({
         base64: scriptConfig.base64,
         advancedEngines: scriptConfig.advancedEngines,
-        header: headerText
+        header: headerText,
       }),
       new WatchDeployPlugin({
         type: scriptConfig.watch,
-        projects:projectsMain
+        projects: projectsMain,
       }),
       new CleanWebpackPlugin({
         cleanStaleWebpackAssets: false,
@@ -93,31 +100,27 @@ module.exports = function (env, argv) {
           test: /\.js$/,
           use: [
             {
-              loader: require.resolve('babel-loader'),
+              loader: require.resolve("babel-loader"),
             },
             {
-              loader: require.resolve('webpack-autojs-loader'),
-            }
+              loader: require.resolve("webpack-autojs-loader"),
+            },
           ],
         },
         {
           test: /\.ts$/,
           use: {
-            loader: require.resolve('ts-loader'),
+            loader: require.resolve("ts-loader"),
           },
         },
       ],
     },
     resolve: {
-      plugins: [
-        PnpWebpackPlugin,
-      ],
+      plugins: [PnpWebpackPlugin],
+      extensions: [".tsx", ".ts", ".js"],
     },
     resolveLoader: {
-      plugins: [
-        PnpWebpackPlugin.moduleLoader(module),
-      ],
-    }
+      plugins: [PnpWebpackPlugin.moduleLoader(module)],
+    },
   };
-}
-
+};
