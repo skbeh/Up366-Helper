@@ -304,24 +304,31 @@ function audioProcess(
     .child(2);
   const playButton = playView.findOne(text("点击录音")).parent().child(1);
 
-  do {
-    playButton.click();
-  } while (
-    className("android.widget.TextView")
-      .text("上一段音频正在评分中，请稍候")
-      .exists() ||
+  const isRecordEnded = (): boolean =>
     className("android.widget.TextView")
       .textStartsWith("录音中 00:0")
       .find()
       .filter((textView) => {
         const time = parseInt(textView.text().slice(-1), 10);
-        if (time > 0 && time < 10) {
-          sleep(500);
-          return true;
-        }
-        return false;
-      }).length === 0
-  );
+        return time > 0;
+      }).length === 0;
+  for (let ended: boolean = false; ; ) {
+    if (!ended && !isRecordEnded()) {
+      sleep(1500);
+    }
+    ended = isRecordEnded();
+    
+    playButton.click();
+    if (
+      className("android.widget.TextView")
+        .text("上一段音频正在评分中，请稍候")
+        .findOne(1000)
+    ) {
+      sleep(350);
+    } else if (ended) {
+      break;
+    }
+  }
 
   media.musicSeekTo(50);
   media.resumeMusic();
