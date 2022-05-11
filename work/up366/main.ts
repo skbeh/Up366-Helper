@@ -294,6 +294,7 @@ function audioProcess(
     .text(audioNumber.toFixed(0))
     .findOne()
     .click();
+  sleep(200);
   const playView = className("android.widget.TextView")
     .clickable(false)
     .text(audioNumber.toFixed(0))
@@ -312,12 +313,12 @@ function audioProcess(
         const time = parseInt(textView.text().slice(-1), 10);
         return time > 0;
       }).length === 0;
-  for (let ended: boolean = false; ; ) {
+  for (let ended: boolean = false; ; sleep(100)) {
     if (!ended && !isRecordEnded()) {
       sleep(1500);
     }
     ended = isRecordEnded();
-    
+
     playButton.click();
     if (
       className("android.widget.TextView")
