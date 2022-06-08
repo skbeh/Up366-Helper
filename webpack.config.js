@@ -59,7 +59,7 @@ scriptConfig.projects.forEach((project) => {
         "**/JSON-java.dex",
         "**/jsoup.dex",
         "**/LICENSE",
-        "**/main.ts",
+        "**/*.ts",
       ],
     },
   };
@@ -85,7 +85,7 @@ module.exports = function (_env, argv) {
         projects: projectsMain,
       }),
       new CleanWebpackPlugin({
-        cleanStaleWebpackAssets: false,
+        cleanStaleWebpackAssets: true,
         protectWebpackAssets: false,
         cleanOnceBeforeBuildPatterns: [],
         cleanAfterEveryBuildPatterns: ["bundle.js"],

@@ -1,62 +1,45 @@
 {
-    "parser": "@typescript-eslint/parser",
-    "plugins": [
-        "@uwhealth/environments",
-        "@typescript-eslint"
-    ],
-    "env": {
-        "@uwhealth/environments/rhino": true
-    },
-    "globals": {
-        "runtime": "readonly",
-        "toast": "readonly",
-        "open": "readonly",
-        "files": "readonly",
-        "confirm": "readonly",
-        "auto": "readonly",
-        "dialogs": "readonly",
-        "anXML": "readonly",
-        "Jsoup": "readonly",
-        "className": "readonly",
-        "currentPackage": "readonly",
-        "app": "readonly",
-        "sleep": "readonly",
-        "waitForActivity": "readonly",
-        "clickable": "readonly",
-        "text": "readonly",
-        "media": "readonly",
-        "device": "readonly"
-    },
-    "extends": "airbnb",
-    "parserOptions": {
-        "ecmaVersion": 2018
-    },
-    "rules": {
-        "indent": [
-            "error",
-            4
-        ],
-        "linebreak-style": [
-            "error",
-            "unix"
-        ],
-        "quotes": [
-            "error",
-            "single"
-        ],
-        "semi": [
-            "error",
-            "always"
-        ],
-        "no-restricted-globals": "off",
-        "no-console": "off",
-        "no-shadow": "off",
-        "max-len": "off",
-        "no-alert": "off",
-        "strict": "off",
-        "@typescript-eslint/consistent-type-definitions": [
-            "error",
-            "interface"
-        ]
-    }
+  "parser": "@typescript-eslint/parser",
+  "plugins": ["@uwhealth/environments", "@typescript-eslint"],
+  "env": {
+    "@uwhealth/environments/rhino": true
+  },
+  "globals": {
+    "runtime": "readonly",
+    "toast": "readonly",
+    "open": "readonly",
+    "files": "readonly",
+    "confirm": "readonly",
+    "auto": "readonly",
+    "dialogs": "readonly",
+    "anXML": "readonly",
+    "Jsoup": "readonly",
+    "className": "readonly",
+    "currentPackage": "readonly",
+    "app": "readonly",
+    "sleep": "readonly",
+    "waitForActivity": "readonly",
+    "clickable": "readonly",
+    "text": "readonly",
+    "media": "readonly",
+    "device": "readonly"
+  },
+  "extends": "airbnb",
+  "parserOptions": {
+    "ecmaVersion": 2018
+  },
+  "rules": {
+    "indent": ["error", 4],
+    "linebreak-style": ["error", "unix"],
+    "quotes": ["error", "single"],
+    "semi": ["error", "always"],
+    "no-restricted-globals": "off",
+    "no-console": "off",
+    "no-shadow": "off",
+    "max-len": "off",
+    "no-alert": "off",
+    "strict": "off",
+    "sort-imports": "error",
+    "@typescript-eslint/consistent-type-definitions": ["error", "interface"]
+  }
 }

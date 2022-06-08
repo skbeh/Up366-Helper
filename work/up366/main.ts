@@ -1,11 +1,22 @@
 "use strict";
+import {
+  AnswerPage,
+  QuestionList,
+  AnswersList,
+  Questions,
+  Section,
+  Slide,
+} from "./answerPage";
+import { Convert } from "./convert";
 
 const DEBUG: boolean = true;
 
+const SDCARD_PATH: string = files.getSdcardPath();
+
 if (DEBUG) {
-  runtime.loadDex(`${files.getSdcardPath()}/Scripts/up366/lib.dex`);
+  runtime.loadDex(`${SDCARD_PATH}/Scripts/up366/dependencies/lib.dex`);
 } else {
-  runtime.loadDex("lib.dex");
+  runtime.loadDex("dependencies/lib.dex");
 }
 importClass("org.anjson.anXML");
 declare const anXML: any;
@@ -18,42 +29,8 @@ enum HomeworkMode {
   exam = "考试模式",
 }
 
-interface Option {
+export interface AnswerOption {
   [index: string]: string;
-}
-
-interface AnswerText {
-  answer_text?: string;
-  options?: Option[];
-  record_speak?: { content: string }[];
-}
-
-interface Answer {
-  content?: string;
-  answer?: string;
-}
-
-interface Question {
-  answer_text?: string;
-  options?: Option[];
-  answers_list?: Answer[];
-  questions_list?: Question[];
-  answers?: Answer[] | { answer: Answer };
-  analysis?: string;
-  question_no?: string;
-  question_text?: string;
-}
-
-interface Slide {
-  answer_text?: string;
-  questionList?: Question[];
-  questions_list?: Question[];
-  analysis?: string;
-  questionObj?: Question;
-}
-
-interface Section {
-  slides: Slide[];
 }
 
 const OptionArray: string[] = [];
@@ -61,6 +38,29 @@ const FillArray: string[] = [];
 const AudioMap: Map<number, string> = new Map();
 
 let LogFile: com.stardust.pio.PWritableTextFile;
+
+function intersection<T>(array1: Array<T>, array2: Array<T>): Array<T> {
+  const set = new Set(array2);
+  const intersectionSet = new Set(array1.filter((elem) => set.has(elem)));
+  return Array.from(intersectionSet);
+}
+
+function questionOrQuestionsProcess(value: Questions | QuestionList): void {
+  if (
+    intersection(["answerText", "questionsList"], Object.keys(value)).length
+  ) {
+    questionProcess(value);
+  } else if (
+    intersection(
+      ["answersList", "answers", "analysis", "questionNo"],
+      Object.keys(value)
+    ).length
+  ) {
+    questionsProcess(value);
+  } else {
+    questionCommonProcess(value);
+  }
+}
 
 function checkLog(string: string): void {
   if (string) {
@@ -83,7 +83,7 @@ function selectDialog(array: string[], text: string): number {
     case 1:
       return 0;
     default:
-      return <number>dialogs.select(text, array);
+      return dialogs.select(text, array) as number;
   }
 }
 
@@ -99,7 +99,7 @@ function homeworkModeToDir(
     case HomeworkMode.others: {
       const modeDirList: string[] = files.listDir(
         basePath,
-        <com.stardust.util.Func1<string, boolean>>(<unknown>bookDetect)
+        bookDetect as unknown as com.stardust.util.Func1<string, boolean>
       );
       return `${
         basePath + modeDirList[selectDialog(modeDirList, "选择模式")]
@@ -130,13 +130,12 @@ function fileDetect(dirPath: string): string {
     }
   }
 
-  const dirCodeList: string[] = files.listDir(dirPath, <
-    com.stardust.util.Func1<string, boolean>
-  >(<unknown>(
-    ((dirCode: string) => files.exists(`${dirPath}/${dirCode}/page1.js`))
-  )));
+  const dirCodeList: string[] = files.listDir(dirPath, ((dirCode: string) =>
+    files.exists(
+      `${dirPath}/${dirCode}/page1.js`
+    )) as unknown as com.stardust.util.Func1<string, boolean>);
   if (dirCodeList.length > 0) {
-    return dirCodeList[<number>dialogs.select("子目录选择", dirCodeList)];
+    return dirCodeList[dialogs.select("子目录选择", dirCodeList) as number];
   }
 
   toast("开始模糊匹配！");
@@ -154,8 +153,8 @@ function fileDetect(dirPath: string): string {
   throw Error("No answer file found");
 }
 
-const JSONParse: (text: string) => Object = (text) =>
-  JSON.parse(text.substring(15));
+const JSONParse: (text: string) => AnswerPage = (text) =>
+  Convert.toAnswerPage(text.substring(15));
 
 function optionToNumber(answerText: string) {
   switch (answerText) {
@@ -190,32 +189,30 @@ function cleanTag(html: string, tag?: string): string {
   if (cleanedHTML.text()) {
     return cleanedHTML.text();
   }
-  return html;
+  return html.trim();
 }
 
-function answerTextProcess(value: AnswerText): string {
-  if (value.answer_text) {
-    const answerIndex = optionToNumber(value.answer_text);
-
+function questionListProcess(value: QuestionList): string {
+  if (value.answerText && value.answerText !== "<answers/>") {
+    const answerIndex = optionToNumber(value.answerText);
     if (
       answerIndex >= 0 &&
       Array.isArray(value.options) &&
-      value.options[answerIndex]
+      value.options[answerIndex].content
     ) {
-      return value.options[answerIndex].content;
+      return value.options[answerIndex].content!;
     }
   }
 
-  if (value.record_speak && value.record_speak[0]) {
-    if (value.record_speak[0].content) {
-      return value.record_speak[0].content;
-    }
-    return "Value error";
+  if (Array.isArray(value.recordSpeak) && value.recordSpeak[0]) {
+    return value.recordSpeak[0].content
+      ? value.recordSpeak[0].content
+      : "Value is empty";
   }
-  return "No value";
+  return "No Value";
 }
 
-function answerProcess(value: Answer): void {
+function answerProcess(value: AnswersList): void {
   if (value.content) {
     checkLog(value.content);
     FillArray.push(value.content);
@@ -224,40 +221,59 @@ function answerProcess(value: Answer): void {
   }
 }
 
-function questionProcess(value: Question): void {
-  if (value.answer_text && Array.isArray(value.options) && value.options[0]) {
-    const answerContent = answerTextProcess(value);
+function questionCommonProcess(value: QuestionList | Questions): void {
+  if (value.analysis) {
+    checkLog(cleanTag(value.analysis));
+    if (
+      "recordSpeak" in value &&
+      Array.isArray(value.recordSpeak) &&
+      value.recordSpeak[0]?.content
+    ) {
+      checkLog(value.recordSpeak[0].content);
+    }
+  } else if (value.questionNo) {
+    const audioFile = Jsoup.parse(value.questionText, "text/html")
+      .getElementsByAttribute("has_audio")
+      .attr("url");
+    AudioMap.set(parseInt(value.questionNo, 10), audioFile);
+  }
+}
+
+function questionProcess(value: QuestionList): void {
+  if (value.answerText && Array.isArray(value.options) && value.options[0]) {
+    const answerContent = questionListProcess(value);
     checkLog(answerContent);
     OptionArray.push(answerContent);
-  } else if (Array.isArray(value.answers_list)) {
-    value.answers_list.forEach(answerProcess);
-  } else if (value.questions_list) {
+  } else if (value.questionsList) {
     const questionPreSort = (value: {
-      answer_text?: string;
-      answers_list?: Answer[];
+      answerText?: string;
+      answersList?: AnswersList[];
     }) => {
-      if (value.answer_text) {
-        const answerContent = answerTextProcess(value);
+      if (value.answerText) {
+        const answerContent = questionListProcess(value);
         checkLog(answerContent);
         OptionArray.push(answerContent);
-      } else if (value.answers_list) {
-        value.answers_list.forEach(answerProcess);
+      } else if (value.answersList) {
+        value.answersList.forEach(answerProcess);
       }
     };
-    value.questions_list.forEach(questionPreSort);
+    value.questionsList.forEach(questionPreSort);
+  } else {
+    questionCommonProcess(value);
+  }
+}
+
+function questionsProcess(value: Questions): void {
+  if (Array.isArray(value.answersList)) {
+    value.answersList.forEach(answerProcess);
   } else if (value.answers && "answer" in value.answers) {
     if (Array.isArray(value.answers.answer)) {
       value.answers.answer.forEach(answerProcess);
-    } else if (value.answers.answer instanceof Object) {
+    } else if (value.answers.answer) {
       answerProcess(value.answers.answer);
     }
-  } else if (value.analysis) {
-    checkLog(cleanTag(value.analysis));
-  } else if (value.question_no) {
-    const audioFile = Jsoup.parse(value.question_text, "text/html")
-      .getElementsByAttribute("has_audio")
-      .attr("url");
-    AudioMap.set(parseInt(value.question_no, 10), audioFile);
+  } else {
+    questionCommonProcess(value);
   }
 }
 
@@ -272,9 +288,12 @@ function audioProcess(
     console.log(error);
     const audioFileArray = files.listDir(
       dirPath,
-      <com.stardust.util.Func1<string, boolean>>(
-        (<unknown>((fileName: string) => fileName === files.getName(path)))
-      )
+
+      ((fileName: string) =>
+        fileName === files.getName(path)) as unknown as com.stardust.util.Func1<
+        string,
+        boolean
+      >
     );
     if (audioFileArray.length !== 0) {
       media.playMusic(audioFileArray[0]);
@@ -294,7 +313,6 @@ function audioProcess(
     .text(audioNumber.toFixed(0))
     .findOne()
     .click();
-  sleep(200);
   const playView = className("android.widget.TextView")
     .clickable(false)
     .text(audioNumber.toFixed(0))
@@ -313,9 +331,9 @@ function audioProcess(
         const time = parseInt(textView.text().slice(-1), 10);
         return time > 0;
       }).length === 0;
-  for (let ended: boolean = false; ; sleep(100)) {
+  for (let ended: boolean = false; ; sleep(50)) {
     if (!ended && !isRecordEnded()) {
-      sleep(1500);
+      sleep(500);
     }
     ended = isRecordEnded();
 
@@ -325,7 +343,7 @@ function audioProcess(
         .text("上一段音频正在评分中，请稍候")
         .findOne(1000)
     ) {
-      sleep(350);
+      sleep(100);
     } else if (ended) {
       break;
     }
@@ -333,7 +351,7 @@ function audioProcess(
 
   media.musicSeekTo(50);
   media.resumeMusic();
-  sleep(media.getMusicDuration() - 300);
+  sleep(media.getMusicDuration() - 250);
   media.stopMusic();
 
   const stopButtonParent = (() => {
@@ -348,36 +366,36 @@ function audioProcess(
 }
 
 function slideProcess(value: Slide) {
-  if (value.answer_text) {
-    const answerContent = answerTextProcess(value);
+  if (value.answerText) {
+    const answerContent = questionListProcess(value);
     checkLog(answerContent);
     OptionArray.push(answerContent);
-  } else if (value.questionList || value.questions_list) {
+  } else if (value.questionList || value.questionsList) {
     if (Array.isArray(value.questionList)) {
       if (value.questionList.length !== 0) {
-        if (Array.isArray(value.questionList[0].questions_list)) {
+        if (Array.isArray(value.questionList[0].questionsList)) {
           value.questionList.forEach(
-            (part: { questions_list?: Question[] }) => {
-              if (Array.isArray(part.questions_list)) {
-                part.questions_list.forEach(questionProcess);
+            (part: { questionsList?: Questions[] }) => {
+              if (Array.isArray(part.questionsList)) {
+                part.questionsList.forEach(questionOrQuestionsProcess);
               }
             }
           );
         } else {
-          value.questionList.forEach(questionProcess);
+          value.questionList.forEach(questionOrQuestionsProcess);
         }
       }
-    } else if (value.questions_list) {
-      value.questions_list.forEach(questionProcess);
+    } else if (value.questionsList) {
+      value.questionsList.forEach(questionOrQuestionsProcess);
     }
   } else if (value.analysis) {
     checkLog(cleanTag(value.analysis));
   } else if (value.questionObj) {
-    questionProcess(value.questionObj);
+    questionOrQuestionsProcess(value.questionObj);
   }
 }
 
-const sectionProcess = (value: Section) => value.slides.forEach(slideProcess);
+const sectionProcess = (value: Section) => value.slides!.forEach(slideProcess);
 
 function selectOption(option: string) {
   const findOption = (option: string) =>
@@ -401,8 +419,8 @@ function selectOption(option: string) {
 function main(): void {
   const basePath =
     device.sdkInt >= 29
-      ? `${files.getSdcardPath()}/up366/`
-      : `${files.getSdcardPath()}/Android/data/com.up366.mobile/files/flipbook/`;
+      ? `${SDCARD_PATH}/up366/`
+      : `${SDCARD_PATH}/Android/data/com.up366.mobile/files/flipbook/`;
 
   const modeNumber = dialogs.select(
     "选择模式",
@@ -427,7 +445,7 @@ function main(): void {
 
   toast("请开启悬浮窗权限和无障碍服务，如已开启可无视");
 
-  LogFile = open(`${files.getSdcardPath()}/up366/answer.txt`, "w");
+  LogFile = open(`${SDCARD_PATH}/up366/answer.txt`, "w");
 
   const autoClick = confirm("是否自动做题？");
   if (autoClick) {
@@ -438,19 +456,20 @@ function main(): void {
 
   const bookList = files.listDir(
     modeDir,
-    <com.stardust.util.Func1<string, boolean>>(<unknown>bookDetect)
+    bookDetect as unknown as com.stardust.util.Func1<string, boolean>
   );
   const dirPath = `${modeDir + bookList[selectDialog(bookList, "选择作业")]}/`;
 
   const finalPath = fileDetect(dirPath);
-  const unserializedText = files.read(finalPath);
+  const rawText = files.read(finalPath);
   const answerObject = (() => {
     switch (files.getExtension(finalPath)) {
       case "js":
-        return JSONParse(unserializedText);
+        return JSONParse(rawText);
       case "xml":
-        return JSON.parse(anXML.toJSONObject(unserializedText).toString())
-          .elements;
+        return Convert.objectToAnswerPage(
+          JSON.parse(anXML.toJSONObject(rawText).toString()).elements
+        );
       default:
         throw RangeError("Answer file extension error");
     }
@@ -461,11 +480,15 @@ function main(): void {
   } else if (answerObject.sliders) {
     answerObject.sliders.forEach(slideProcess);
   } else if (answerObject.sections) {
-    answerObject.sections.forEach(sectionProcess);
+    if (answerObject.sections[0] && "slides" in answerObject.sections[0]) {
+      (answerObject.sections as Section[]).forEach(sectionProcess);
+    } else {
+      (answerObject.sections as Slide[]).forEach(slideProcess);
+    }
   } else if (answerObject.practice) {
     answerObject.practice.forEach(slideProcess);
   } else if (answerObject.element) {
-    answerObject.element.forEach(questionProcess);
+    answerObject.element.forEach(questionOrQuestionsProcess);
   }
 
   (console as unknown as Internal.Console).show();

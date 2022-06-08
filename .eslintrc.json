@@ -118,7 +118,7 @@
     "array-bracket-spacing": [2, "never"],
     "no-multiple-empty-lines": "off",
     "strict": "off",
-    "use strict" : "off",
+    "use strict": "off",
     "eslint strict": "off"
   }
 }
