@@ -1,7 +1,7 @@
 const path = require("path");
 const fs = require("fs");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-const AutoxHeaderWebpackPlugin = require("autox-header-webpack-plugin");
+// const AutoxHeaderWebpackPlugin = require("autox-header-webpack-plugin");
 const WatchDeployPlugin = require("autox-deploy-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const PnpWebpackPlugin = require("pnp-webpack-plugin");
@@ -74,18 +74,21 @@ module.exports = function (_env, argv) {
     },
     target: scriptConfig.target,
     mode: argv.mode,
+    optimization: {
+      minimize: false,
+    },
     plugins: [
-      new AutoxHeaderWebpackPlugin({
-        base64: scriptConfig.base64,
-        advancedEngines: scriptConfig.advancedEngines,
-        header: headerText,
-      }),
+      // new AutoxHeaderWebpackPlugin({
+      //   base64: scriptConfig.base64,
+      //   advancedEngines: scriptConfig.advancedEngines,
+      //   header: headerText,
+      // }),
       new WatchDeployPlugin({
         type: scriptConfig.watch,
         projects: projectsMain,
       }),
       new CleanWebpackPlugin({
-        cleanStaleWebpackAssets: true,
+        cleanStaleWebpackAssets: false,
         protectWebpackAssets: false,
         cleanOnceBeforeBuildPatterns: [],
         cleanAfterEveryBuildPatterns: ["bundle.js"],

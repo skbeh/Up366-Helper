@@ -4,7 +4,7 @@ import { AnswerPage } from "./answerPage";
 // and asserts the results of JSON.parse at runtime
 export class Convert {
   public static toAnswerPage(json: string): AnswerPage {
-    return cast(JSON.parse(json), r("AnswerPage"));
+    return objToCamelCase(cast(JSON.parse(json), r("AnswerPage")));
   }
 
   public static answerPageToJson(value: AnswerPage): string {
@@ -15,6 +15,23 @@ export class Convert {
     return cast(obj, r("AnswerPage"));
   }
 }
+
+const keyToCamelCase = (val: any[] | null): any =>
+  typeof val !== "object" || val === null
+    ? val
+    : Array.isArray(val)
+    ? val.map(objToCamelCase)
+    : objToCamelCase(val);
+
+const objToCamelCase = (obj: any): any =>
+  // @ts-ignore
+  Object.fromEntries(
+    // @ts-ignore
+    Object.entries(obj).map(([key, val]: any) => [
+      key.replace(/_(.)/g, (g: string[]) => g[1].toUpperCase()),
+      keyToCamelCase(val),
+    ])
+  );
 
 function invalidValue(typ: any, val: any, key: any = ""): never {
   if (key) {

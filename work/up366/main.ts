@@ -222,12 +222,15 @@ function answerProcess(value: AnswersList): void {
 }
 
 function questionCommonProcess(value: QuestionList | Questions): void {
-  if (value.analysis) {
+  if (value.answersList) {
+    value.answersList.forEach(answerProcess);
+  } else if (value.analysis) {
     checkLog(cleanTag(value.analysis));
     if (
       "recordSpeak" in value &&
       Array.isArray(value.recordSpeak) &&
-      value.recordSpeak[0]?.content
+      value.recordSpeak[0].content &&
+      value.recordSpeak[0].content.length !== value.analysis.length
     ) {
       checkLog(value.recordSpeak[0].content);
     }
