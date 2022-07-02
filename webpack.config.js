@@ -1,14 +1,8 @@
 const path = require("path");
-const fs = require("fs");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
-// const AutoxHeaderWebpackPlugin = require("autox-header-webpack-plugin");
-const WatchDeployPlugin = require("autox-deploy-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 const PnpWebpackPlugin = require("pnp-webpack-plugin");
 const scriptConfig = require("./scriptConfig.js");
-
-const headerFile = path.resolve(__dirname, scriptConfig.header);
-const headerText = fs.readFileSync(headerFile, "utf8").trim();
 
 const dist = "./dist";
 let entry = {};
@@ -78,15 +72,6 @@ module.exports = function (_env, argv) {
       minimize: false,
     },
     plugins: [
-      // new AutoxHeaderWebpackPlugin({
-      //   base64: scriptConfig.base64,
-      //   advancedEngines: scriptConfig.advancedEngines,
-      //   header: headerText,
-      // }),
-      new WatchDeployPlugin({
-        type: scriptConfig.watch,
-        projects: projectsMain,
-      }),
       new CleanWebpackPlugin({
         cleanStaleWebpackAssets: false,
         protectWebpackAssets: false,
@@ -100,17 +85,6 @@ module.exports = function (_env, argv) {
     module: {
       rules: [
         {
-          test: /\.js$/,
-          use: [
-            {
-              loader: require.resolve("babel-loader"),
-            },
-            {
-              loader: require.resolve("webpack-autojs-loader"),
-            },
-          ],
-        },
-        {
           test: /\.ts$/,
           use: {
             loader: require.resolve("ts-loader"),
@@ -120,7 +94,7 @@ module.exports = function (_env, argv) {
     },
     resolve: {
       plugins: [PnpWebpackPlugin],
-      extensions: [".tsx", ".ts", ".js"],
+      extensions: [".tsx", ".ts"],
     },
     resolveLoader: {
       plugins: [PnpWebpackPlugin.moduleLoader(module)],
