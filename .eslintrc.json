@@ -111,14 +111,5 @@
   },
   "parserOptions": {
     "ecmaVersion": 2018
-  },
-  "rules": {
-    "quotes": "off",
-    "comma-dangle": ["error", "only-multiline"],
-    "array-bracket-spacing": [2, "never"],
-    "no-multiple-empty-lines": "off",
-    "strict": "off",
-    "use strict": "off",
-    "eslint strict": "off"
   }
 }
